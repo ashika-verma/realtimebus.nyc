@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import type { FeedMessage, Stop, Route, RouteMap } from '../types'
+import type { FeedMessage, Stop, Route, RouteMap, RouteHeadsigns } from '../types'
 
 const fetcher = (url: string): Promise<FeedMessage | Stop[] | Route[]> =>
   fetch(url).then((r) => {
@@ -85,6 +85,15 @@ export function useRoutes(): RoutesResult {
     error,
     isLoading,
   }
+}
+
+export function useRouteHeadsigns(): { routeHeadsigns: RouteHeadsigns; isLoading: boolean } {
+  const { data, isLoading } = useSWR<RouteHeadsigns>(
+    '/api/route-headsigns',
+    fetcher as unknown as (url: string) => Promise<RouteHeadsigns>,
+    { revalidateOnFocus: false, revalidateOnReconnect: false }
+  )
+  return { routeHeadsigns: data ?? {}, isLoading }
 }
 
 function buildRouteMap(routes: Route[] | undefined): RouteMap {

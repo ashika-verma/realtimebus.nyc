@@ -25,6 +25,7 @@ export function buildArrivalsByStop(
         tripId,
         routeId,
         headsign: tu.trip?.tripHeadsign ?? null,
+        directionId: tu.trip?.directionId ?? null,
         vehicleId,
         stopSequence: stu.stopSequence,
         arrival: stu.arrival ?? null,
@@ -49,10 +50,10 @@ export function buildArrivalsByStop(
 /**
  * Group arrivals by headsign direction within a stop.
  */
-export function groupByDirection(arrivals: ArrivalInfo[]): Map<string, ArrivalInfo[]> {
-  const groups = new Map<string, ArrivalInfo[]>()
+export function groupByDirection(arrivals: ArrivalInfo[]): Map<string | null, ArrivalInfo[]> {
+  const groups = new Map<string | null, ArrivalInfo[]>()
   for (const a of arrivals) {
-    const key = a.headsign ?? 'Unknown'
+    const key = a.headsign ?? null
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(a)
   }

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useLocation } from '../hooks/useLocation'
-import { useTripUpdates, useStops, useRoutes } from '../hooks/useGtfs'
+import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns } from '../hooks/useGtfs'
 import { stopsNearby } from '../utils/geo'
 import { buildArrivalsByStop } from '../utils/gtfs'
 import StopCard from '../components/StopCard'
@@ -14,6 +14,7 @@ export default function NearbyView({ onSelectTrip }: NearbyViewProps) {
   const { coords, error: geoError, loading: geoLoading } = useLocation()
   const { stops, isLoading: stopsLoading } = useStops()
   const { routeMap } = useRoutes()
+  const { routeHeadsigns } = useRouteHeadsigns()
   const { tripUpdates, isLoading: tripsLoading, isValidating, lastUpdated } = useTripUpdates()
 
   // Nearby stops (within 320m)
@@ -105,6 +106,7 @@ export default function NearbyView({ onSelectTrip }: NearbyViewProps) {
               stop={stop}
               arrivals={arrivals}
               routeMap={routeMap}
+              routeHeadsigns={routeHeadsigns}
               allStops={stops}
               onSelectTrip={onSelectTrip}
             />

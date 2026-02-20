@@ -20,6 +20,9 @@ export interface Route {
 
 export type RouteMap = Record<string, Route>
 
+/** routeId → { "0": headsign, "1": headsign } */
+export type RouteHeadsigns = Record<string, Record<string, string>>
+
 // ─── GTFS-RT ─────────────────────────────────────────────────────────────────
 
 export interface StopTimeEvent {
@@ -39,6 +42,7 @@ export interface TripDescriptor {
   tripId?: string
   routeId?: string
   tripHeadsign?: string
+  directionId?: number
   scheduleRelationship?: string
 }
 
@@ -87,6 +91,7 @@ export interface ArrivalInfo {
   tripId?: string
   routeId?: string
   headsign?: string | null
+  directionId?: number | null
   vehicleId?: string | null
   stopSequence?: number
   arrival?: StopTimeEvent | null

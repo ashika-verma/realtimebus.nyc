@@ -110,6 +110,7 @@ async function loadJson(filename) {
 // Simple in-memory static cache (these rarely change)
 let stopsCache = null
 let routesCache = null
+let routeHeadsignsCache = null
 
 app.get('/api/stops', async (req, res) => {
   try {
@@ -126,6 +127,16 @@ app.get('/api/routes', async (req, res) => {
     if (!routesCache) routesCache = await loadJson('routes.json')
     if (!routesCache) return res.status(503).json({ error: 'routes.json not found — run: npm run process-gtfs' })
     res.json(routesCache)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/route-headsigns', async (req, res) => {
+  try {
+    if (!routeHeadsignsCache) routeHeadsignsCache = await loadJson('route-headsigns.json')
+    if (!routeHeadsignsCache) return res.status(503).json({ error: 'route-headsigns.json not found — run: npm run process-gtfs' })
+    res.json(routeHeadsignsCache)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

@@ -99,8 +99,9 @@ async function main() {
 async function downloadAllAndMergeJson() {
   ensureDir(GTFS_OUT)
 
-  const allStops = {}   // stopId → stop object
-  const allRoutes = {}  // routeId → route object
+  const allStops = {}          // stopId → stop object
+  const allRoutes = {}         // routeId → route object
+  const allRouteHeadsigns = {} // routeId → { "0": headsign, "1": headsign }
 
   for (const feed of MTA_GTFS_FEEDS) {
     const extractDir = join(GTFS_DATA, 'extracted', feed.name)
@@ -126,18 +127,21 @@ async function downloadAllAndMergeJson() {
     }
 
     console.log(`Processing ${feed.name} …`)
-    const { stops, routes } = await processOneGtfsDir(extractDir)
+    const { stops, routes, routeHeadsigns } = await processOneGtfsDir(extractDir)
     for (const [id, s] of Object.entries(stops)) {
       if (!allStops[id]) {
         allStops[id] = s
       } else {
-        // Merge routes
         const merged = new Set([...allStops[id].routes, ...s.routes])
         allStops[id].routes = [...merged].sort()
       }
     }
     for (const [id, r] of Object.entries(routes)) {
       allRoutes[id] = r
+    }
+    for (const [routeId, dirs] of Object.entries(routeHeadsigns)) {
+      if (!allRouteHeadsigns[routeId]) allRouteHeadsigns[routeId] = {}
+      Object.assign(allRouteHeadsigns[routeId], dirs)
     }
   }
 
@@ -149,6 +153,9 @@ async function downloadAllAndMergeJson() {
 
   await writeFile(join(GTFS_OUT, 'routes.json'), JSON.stringify(routesArr))
   console.log(`Wrote server/gtfs/routes.json (${routesArr.length} routes)`)
+
+  await writeFile(join(GTFS_OUT, 'route-headsigns.json'), JSON.stringify(allRouteHeadsigns))
+  console.log(`Wrote server/gtfs/route-headsigns.json (${Object.keys(allRouteHeadsigns).length} routes)`)
   console.log('\nDone! Run: npm run dev')
 }
 
@@ -184,11 +191,16 @@ async function processOneGtfsDir(gtfsDir) {
     }
   }
 
-  // trips → route mapping
+  // trips → route mapping + route+direction → headsign
   const tripsRaw = await parseCsv(join(gtfsDir, 'trips.txt'))
   const tripToRoute = {}
+  const routeHeadsigns = {} // { routeId: { "0": headsign, "1": headsign } }
   for (const row of tripsRaw) {
     tripToRoute[row.trip_id] = row.route_id
+    if (row.trip_headsign && row.route_id && row.direction_id !== undefined) {
+      if (!routeHeadsigns[row.route_id]) routeHeadsigns[row.route_id] = {}
+      routeHeadsigns[row.route_id][row.direction_id] = row.trip_headsign
+    }
   }
 
   // stop_times → attach routes to stops (streaming)
@@ -221,7 +233,7 @@ async function processOneGtfsDir(gtfsDir) {
     if (stopsMap[stopId]) stopsMap[stopId].routes = [...routeSet].sort()
   }
 
-  return { stops: stopsMap, routes: routesMap }
+  return { stops: stopsMap, routes: routesMap, routeHeadsigns }
 }
 
 main().catch((err) => {
