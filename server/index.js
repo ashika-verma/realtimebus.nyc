@@ -155,8 +155,13 @@ function parseSiriStop(raw) {
     const rawDest = mvj.DestinationName
     const headsign = Array.isArray(rawDest) ? (rawDest[0] ?? null) : (rawDest ?? null)
 
+    // Strip agency prefix from trip ID: "MTA NYCT_GA_A6-..." → "GA_A6-..."
+    // GTFS-RT uses the un-prefixed form; we need them to match for TripView lookup.
+    const rawTripId = mvj.FramedVehicleJourneyRef?.DatedVehicleJourneyRef ?? null
+    const tripId = rawTripId?.includes('_') ? rawTripId.split('_').slice(1).join('_') : rawTripId
+
     arrivals.push({
-      tripId: mvj.FramedVehicleJourneyRef?.DatedVehicleJourneyRef ?? null,
+      tripId,
       routeId,
       headsign,
       directionId: mvj.DirectionRef != null ? parseInt(String(mvj.DirectionRef), 10) : null,
