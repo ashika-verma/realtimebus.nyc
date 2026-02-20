@@ -203,6 +203,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                   routeHeadsigns={routeHeadsigns}
                   allStops={stops}
                   onSelectTrip={onSelectTrip}
+                  onSelectStop={onSelectStop}
                 />
               )
             })}
