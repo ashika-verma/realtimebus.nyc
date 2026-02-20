@@ -175,11 +175,41 @@ app.get('/api/siri/stops', async (req, res) => {
 
   const results = await Promise.allSettled(stopIds.map((id) => fetchSiriStop(id)))
   const out = {}
+  let firstError = null
   for (let i = 0; i < stopIds.length; i++) {
     const r = results[i]
-    out[stopIds[i]] = r.status === 'fulfilled' ? parseSiriStop(r.value) : []
+    if (r.status === 'fulfilled') {
+      out[stopIds[i]] = parseSiriStop(r.value)
+    } else {
+      firstError = firstError ?? r.reason?.message
+      out[stopIds[i]] = []
+    }
+  }
+  if (firstError && Object.values(out).every((arr) => arr.length === 0)) {
+    return res.status(502).json({ error: firstError })
   }
   res.json(out)
+})
+
+// Debug: raw SIRI response for a single stop (no cache bypass, check live data)
+app.get('/api/siri/debug/:stopId', async (req, res) => {
+  try {
+    const { stopId } = req.params
+    const url = `${SIRI_BASE}/stop-monitoring.json?key=${BUSTIME_KEY}&version=2&OperatorRef=MTA&MonitoringRef=${stopId}&MinimumStopVisitsPerLine=2`
+    const resp = await fetch(url)
+    const text = await resp.text()
+    res.setHeader('Content-Type', 'application/json')
+    // Return status, key hint, and raw body so we can see exactly what MTA returns
+    res.json({
+      httpStatus: resp.status,
+      keySet: !!BUSTIME_KEY,
+      keyPrefix: BUSTIME_KEY ? BUSTIME_KEY.slice(0, 8) + '…' : '(none)',
+      url: url.replace(BUSTIME_KEY, '***'),
+      rawBody: (() => { try { return JSON.parse(text) } catch { return text } })(),
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ────────────────────────────────────────────────────────────────
