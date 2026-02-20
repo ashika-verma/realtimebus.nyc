@@ -274,6 +274,13 @@ app.get('/api/route-headsigns', async (req, res) => {
   }
 })
 
+// Version — used by the client to detect new deploys
+const SERVER_START = Date.now().toString()
+app.get('/api/version', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store')
+  res.json({ v: process.env.RENDER_GIT_COMMIT ?? SERVER_START })
+})
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({

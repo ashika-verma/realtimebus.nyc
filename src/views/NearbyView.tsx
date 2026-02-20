@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useDebounce } from '../hooks/useDebounce'
 import { useOnline } from '../hooks/useOnline'
+import { useVersionCheck } from '../hooks/useVersionCheck'
 import { DEFAULT_SETTINGS } from '../config'
 import { BusPullIndicator, usePullToRefresh } from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
@@ -118,6 +119,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
 
   const online = useOnline()
   const isStale = !online || (secsSince !== null && secsSince > 60)
+  const updateAvailable = useVersionCheck()
 
   const loading = geoLoading || stopsLoading || sirisLoading
   const isSearching = debouncedQuery.trim().length > 0
@@ -175,6 +177,19 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
               )}
             </div>
           </div>
+
+          {/* New version available */}
+          {updateAvailable && (
+            <div className="mt-2 flex items-center justify-between bg-white/25 rounded-lg px-3 py-1.5">
+              <span className="text-white text-xs font-medium">New version available</span>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-white text-xs font-semibold underline underline-offset-2"
+              >
+                Reload
+              </button>
+            </div>
+          )}
 
           {/* Offline / stale data warning */}
           {isStale && (
