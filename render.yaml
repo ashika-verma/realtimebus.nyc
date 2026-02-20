@@ -4,7 +4,8 @@ services:
     runtime: node
     region: ohio
     plan: free
-    buildCommand: npm run build
+    nodeVersion: 20.19.0
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: MTA_GTFS_RT_BASE_URL
