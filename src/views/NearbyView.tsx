@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { DEFAULT_SETTINGS } from '../config'
+import PullToRefresh from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
 import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { stopsNearby, haversineMeters } from '../utils/geo'
@@ -164,7 +165,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto overscroll-contain">
+      <PullToRefresh onRefresh={mutate} className="flex-1 overscroll-contain">
         <div className="px-4 pb-8 max-w-lg mx-auto space-y-3">
         {/* Loading skeleton */}
         {loading && !isSearching && (
@@ -260,7 +261,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
           </>
         )}
         </div>
-      </main>
+      </PullToRefresh>
     </div>
   )
 }

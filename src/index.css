@@ -47,6 +47,11 @@ body {
   animation: slideUp 0.2s ease-out;
 }
 
+@keyframes busWheelSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
