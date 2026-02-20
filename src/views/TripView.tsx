@@ -8,9 +8,10 @@ import type { SelectedTrip, Stop, TimelineStop } from '../types'
 interface TripViewProps {
   trip: SelectedTrip
   onBack: () => void
+  onSelectStop?: (stopId: string, name?: string) => void
 }
 
-export default function TripView({ trip, onBack }: TripViewProps) {
+export default function TripView({ trip, onBack, onSelectStop }: TripViewProps) {
   const { tripId, vehicleId, routeId, headsign } = trip
   const { tripUpdates } = useTripUpdates()
   const { vehicles } = useVehiclePositions()
@@ -91,6 +92,7 @@ export default function TripView({ trip, onBack }: TripViewProps) {
               stops={timelineStops}
               vehicleStop={vehicleStopId}
               routeColor={routeColor}
+              onSelectStop={onSelectStop}
             />
           )}
         </div>

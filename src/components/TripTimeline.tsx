@@ -6,12 +6,14 @@ interface TripTimelineProps {
   stops: TimelineStop[]
   vehicleStop?: string | null
   routeColor?: string
+  onSelectStop?: (stopId: string, name?: string) => void
 }
 
 export default function TripTimeline({
   stops,
   vehicleStop,
   routeColor = '#20B2AA',
+  onSelectStop,
 }: TripTimelineProps) {
   const now = Date.now() / 1000
 
@@ -65,7 +67,11 @@ export default function TripTimeline({
             </div>
 
             {/* Stop info */}
-            <div className={`pb-4 flex-1 pt-0.5 ${isPast ? 'opacity-40' : ''}`}>
+            <button
+              className={`pb-4 flex-1 pt-0.5 text-left ${isPast ? 'opacity-40' : 'hover:opacity-70'} transition-opacity`}
+              onClick={() => stop.stopId && onSelectStop?.(stop.stopId, stop.name)}
+              disabled={!onSelectStop || !stop.stopId}
+            >
               <div className="flex items-baseline justify-between gap-2">
                 <span
                   className={`text-sm leading-tight ${
@@ -93,7 +99,7 @@ export default function TripTimeline({
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           </div>
         )
       })}
