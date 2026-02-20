@@ -13,6 +13,7 @@ interface StopCardProps {
   allStops: Stop[]
   onSelectTrip?: (trip: SelectedTrip) => void
   onSelectStop?: (stopId: string, name: string) => void
+  showTransfers?: boolean
 }
 
 /** Resolve best headsign: from RT data first, then static lookup, then null */
@@ -35,6 +36,7 @@ export default function StopCard({
   allStops,
   onSelectTrip,
   onSelectStop,
+  showTransfers = true,
 }: StopCardProps) {
   const [open, setOpen] = useState(true)
   const [expandedDirections, setExpandedDirections] = useState<Set<string>>(new Set())
@@ -55,7 +57,7 @@ export default function StopCard({
     })
   ) as [string | null, ArrivalInfo[]][]
 
-  if (directions.length === 0 && arrivals.length > 0) return null
+  if (directions.length === 0) return null
 
   return (
     <div className="bg-white rounded-2xl shadow overflow-hidden card-enter">
@@ -85,10 +87,7 @@ export default function StopCard({
 
       {open && (
         <>
-          {directions.length === 0 ? (
-            <p className="px-4 pb-4 text-sm text-gray-400 italic">No upcoming arrivals</p>
-          ) : (
-            directions.map(([headsign, rows]) => {
+          {directions.map(([headsign, rows]) => {
               const key = headsign ?? '_unknown'
               const isExpanded = expandedDirections.has(key)
               const shown = rows.slice(0, isExpanded ? rows.length : 3)
@@ -133,10 +132,11 @@ export default function StopCard({
                   )}
                 </div>
               )
-            })
-          )}
+          })}
 
-          <TransfersList stop={stop} allStops={allStops} routeMap={routeMap} onSelectStop={onSelectStop} />
+          {showTransfers && (
+            <TransfersList stop={stop} allStops={allStops} routeMap={routeMap} onSelectStop={onSelectStop} />
+          )}
         </>
       )}
     </div>

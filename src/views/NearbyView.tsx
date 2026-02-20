@@ -176,6 +176,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                     allStops={stops}
                     onSelectTrip={onSelectTrip}
                     onSelectStop={onSelectStop}
+                    showTransfers={false}
                   />
                 )
               })
@@ -204,6 +205,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                   allStops={stops}
                   onSelectTrip={onSelectTrip}
                   onSelectStop={onSelectStop}
+                  showTransfers={false}
                 />
               )
             })}
