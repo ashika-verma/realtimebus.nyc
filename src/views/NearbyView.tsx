@@ -57,10 +57,10 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   }, [mutateSiri, mutateVehicles, mutateAlerts])
   const { pullDist, refreshing, dragging } = usePullToRefresh(scrollRef, handleRefresh)
 
-  // After 8s of initial loading show a "server waking up" hint
+  // After 3s of initial loading show a "server waking up" hint
   useEffect(() => {
     if (!sirisLoading) { setSlowLoad(false); return }
-    const id = setTimeout(() => setSlowLoad(true), 8000)
+    const id = setTimeout(() => setSlowLoad(true), 3000)
     return () => clearTimeout(id)
   }, [sirisLoading])
 

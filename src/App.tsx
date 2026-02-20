@@ -9,17 +9,36 @@ type AppView =
   | { view: 'stop'; stopId: string; name?: string; backLabel: string }
   | { view: 'trip'; trip: SelectedTrip; backLabel: string }
 
+/** Parse the initial view from the URL path (e.g. /stop/504416). */
+function viewFromPath(pathname: string): AppView | null {
+  const m = pathname.match(/^\/stop\/([^/?#]+)/)
+  if (m) return { view: 'stop', stopId: decodeURIComponent(m[1]), backLabel: 'Home' }
+  return null
+}
+
+/** Canonical URL path for a given view. */
+function pathForView(v: AppView): string {
+  if (v.view === 'stop') return `/stop/${encodeURIComponent(v.stopId)}`
+  return '/'
+}
+
 export default function App() {
   const [current, setCurrent] = useState<AppView>(() => {
-    // On first load, restore from history state if present
-    const s = window.history.state as AppView | null
-    return s?.view ? s : { view: 'home' }
+    // Deep link takes priority, then history state, then home
+    return (
+      viewFromPath(window.location.pathname) ??
+      (window.history.state as AppView | null)?.view
+        ? (window.history.state as AppView)
+        : { view: 'home' }
+    )
   })
 
   useEffect(() => {
-    // Ensure the initial history entry has state so popstate fires correctly
+    // Ensure the initial history entry has state + correct URL
     if (!window.history.state?.view) {
-      window.history.replaceState({ view: 'home' } satisfies AppView, '')
+      const init: AppView = viewFromPath(window.location.pathname) ?? { view: 'home' }
+      window.history.replaceState(init, '', pathForView(init))
+      setCurrent(init)
     }
 
     const onPop = (e: PopStateEvent) => {
@@ -30,13 +49,12 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  /** Push a new history entry and update React state together. */
+  /** Push a new history entry, updating both state and URL. */
   const navigate = (next: AppView) => {
-    window.history.pushState(next, '')
+    window.history.pushState(next, '', pathForView(next))
     setCurrent(next)
   }
 
-  /** Go back — popstate listener handles the state update. */
   const goBack = () => window.history.back()
 
   if (current.view === 'stop') {

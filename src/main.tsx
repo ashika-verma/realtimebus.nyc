@@ -5,6 +5,9 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { LocationProvider } from './contexts/LocationContext'
 import './index.css'
 
+// Remove the inline loading splash once React is ready to render
+document.getElementById('splash')?.remove()
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
