@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { mutate as swrMutate } from 'swr'
 import { DEFAULT_SETTINGS } from '../config'
-import PullToRefresh from '../components/PullToRefresh'
+import { BusPullIndicator, usePullToRefresh } from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
 import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { stopsNearby, haversineMeters } from '../utils/geo'
@@ -33,6 +34,16 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
 
   const [searchQuery, setSearchQuery] = useState('')
   const [slowLoad, setSlowLoad] = useState(false)
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      swrMutate('/api/gtfs/trips'),
+      swrMutate('/api/gtfs/vehicles'),
+      swrMutate('/api/gtfs/alerts'),
+    ])
+  }, [])
+  const { pullDist, refreshing, dragging } = usePullToRefresh(scrollRef, handleRefresh)
 
   // After 8s of initial loading show a "server waking up" hint
   useEffect(() => {
@@ -112,7 +123,10 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
 
   return (
     <div className="flex flex-col h-dvh" style={{ backgroundColor: 'lightseagreen' }}>
-      {/* Header — pinned, never scrolls */}
+      {/* Pull-to-refresh indicator — lives above the header so the whole page shifts down */}
+      <BusPullIndicator pullDist={pullDist} refreshing={refreshing} dragging={dragging} />
+
+      {/* Header — pinned below indicator */}
       <header className="shrink-0 px-4 pb-3 pt-10 z-20" style={{ backgroundColor: 'lightseagreen' }}>
         <div className="max-w-lg mx-auto">
           <div className="flex items-end justify-between">
@@ -165,7 +179,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
         </div>
       </header>
 
-      <PullToRefresh onRefresh={mutate} className="flex-1 overscroll-contain">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
         <div className="px-4 pb-8 max-w-lg mx-auto space-y-3">
         {/* Loading skeleton */}
         {loading && !isSearching && (
@@ -261,7 +275,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
           </>
         )}
         </div>
-      </PullToRefresh>
+      </div>
     </div>
   )
 }
