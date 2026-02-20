@@ -12,6 +12,7 @@ interface StopCardProps {
   routeHeadsigns: RouteHeadsigns
   allStops: Stop[]
   onSelectTrip?: (trip: SelectedTrip) => void
+  onSelectStop?: (stopId: string, name: string) => void
 }
 
 /** Resolve best headsign: from RT data first, then static lookup, then null */
@@ -33,6 +34,7 @@ export default function StopCard({
   routeHeadsigns,
   allStops,
   onSelectTrip,
+  onSelectStop,
 }: StopCardProps) {
   const [open, setOpen] = useState(true)
   const [expandedDirections, setExpandedDirections] = useState<Set<string>>(new Set())
@@ -134,7 +136,7 @@ export default function StopCard({
             })
           )}
 
-          <TransfersList stop={stop} allStops={allStops} routeMap={routeMap} />
+          <TransfersList stop={stop} allStops={allStops} routeMap={routeMap} onSelectStop={onSelectStop} />
         </>
       )}
     </div>

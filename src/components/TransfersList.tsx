@@ -7,9 +7,10 @@ interface TransfersListProps {
   stop: Stop & { distanceMeters?: number }
   allStops: Stop[]
   routeMap: RouteMap
+  onSelectStop?: (stopId: string, name: string) => void
 }
 
-export default function TransfersList({ stop, allStops, routeMap }: TransfersListProps) {
+export default function TransfersList({ stop, allStops, routeMap, onSelectStop }: TransfersListProps) {
   const nearby = allStops
     .filter((s) => s.stopId !== stop.stopId)
     .map((s) => ({
@@ -29,7 +30,12 @@ export default function TransfersList({ stop, allStops, routeMap }: TransfersLis
       </p>
       <div className="space-y-1.5">
         {nearby.map((s) => (
-          <div key={s.stopId} className="flex items-start gap-2">
+          <button
+            key={s.stopId}
+            className="flex items-start gap-2 w-full text-left hover:opacity-70 transition-opacity"
+            onClick={() => onSelectStop?.(s.stopId, s.name)}
+            disabled={!onSelectStop}
+          >
             <span className="text-xs text-gray-500 w-8 text-right shrink-0 pt-0.5">
               {Math.round(s.dist)}m
             </span>
@@ -41,7 +47,7 @@ export default function TransfersList({ stop, allStops, routeMap }: TransfersLis
                 ))}
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

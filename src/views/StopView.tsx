@@ -9,11 +9,13 @@ import type { SelectedTrip } from '../types'
 interface StopViewProps {
   stopId: string
   stopName?: string
+  backLabel?: string
   onBack: () => void
   onSelectTrip: (trip: SelectedTrip) => void
+  onSelectStop: (stopId: string, name: string) => void
 }
 
-export default function StopView({ stopId, stopName, onBack, onSelectTrip }: StopViewProps) {
+export default function StopView({ stopId, stopName, backLabel = 'Back', onBack, onSelectTrip, onSelectStop }: StopViewProps) {
   const { tripUpdates, isLoading } = useTripUpdates()
   const { stops } = useStops()
   const { routeMap } = useRoutes()
@@ -54,7 +56,7 @@ export default function StopView({ stopId, stopName, onBack, onSelectTrip }: Sto
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to trip
+            {backLabel}
           </button>
           <h1 className="text-white font-bold text-xl leading-tight">{displayName}</h1>
           <p className="text-white/60 text-xs mt-0.5">Stop #{stopId} · All arrivals</p>
@@ -72,6 +74,7 @@ export default function StopView({ stopId, stopName, onBack, onSelectTrip }: Sto
             routeHeadsigns={routeHeadsigns}
             allStops={stops}
             onSelectTrip={onSelectTrip}
+            onSelectStop={onSelectStop}
           />
         )}
       </main>

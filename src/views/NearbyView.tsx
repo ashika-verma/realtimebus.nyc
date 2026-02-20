@@ -9,6 +9,7 @@ import type { Stop, SelectedTrip } from '../types'
 
 interface NearbyViewProps {
   onSelectTrip: (trip: SelectedTrip) => void
+  onSelectStop: (stopId: string, name: string) => void
 }
 
 function matchesSearch(stop: Stop, query: string): boolean {
@@ -20,7 +21,7 @@ function matchesSearch(stop: Stop, query: string): boolean {
   )
 }
 
-export default function NearbyView({ onSelectTrip }: NearbyViewProps) {
+export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewProps) {
   const { coords, error: geoError, loading: geoLoading } = useLocation()
   const { stops, isLoading: stopsLoading } = useStops()
   const { routeMap } = useRoutes()
@@ -174,6 +175,7 @@ export default function NearbyView({ onSelectTrip }: NearbyViewProps) {
                     routeHeadsigns={routeHeadsigns}
                     allStops={stops}
                     onSelectTrip={onSelectTrip}
+                    onSelectStop={onSelectStop}
                   />
                 )
               })
