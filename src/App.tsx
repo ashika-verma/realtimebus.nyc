@@ -1,60 +1,82 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import NearbyView from './views/NearbyView'
 import TripView from './views/TripView'
 import StopView from './views/StopView'
 import type { SelectedTrip } from './types'
 
-interface SelectedStop {
-  stopId: string
-  name?: string
-  fromTrip?: SelectedTrip
-}
+type AppView =
+  | { view: 'home' }
+  | { view: 'stop'; stopId: string; name?: string; backLabel: string }
+  | { view: 'trip'; trip: SelectedTrip; backLabel: string }
 
 export default function App() {
-  const [selectedTrip, setSelectedTrip] = useState<SelectedTrip | null>(null)
-  const [selectedStop, setSelectedStop] = useState<SelectedStop | null>(null)
-  const [tripBackLabel, setTripBackLabel] = useState('Nearby stops')
+  const [current, setCurrent] = useState<AppView>(() => {
+    // On first load, restore from history state if present
+    const s = window.history.state as AppView | null
+    return s?.view ? s : { view: 'home' }
+  })
 
-  const handleSelectStop = (stopId: string, name: string | undefined, fromTrip?: SelectedTrip) => {
-    setSelectedStop({ stopId, name, fromTrip })
+  useEffect(() => {
+    // Ensure the initial history entry has state so popstate fires correctly
+    if (!window.history.state?.view) {
+      window.history.replaceState({ view: 'home' } satisfies AppView, '')
+    }
+
+    const onPop = (e: PopStateEvent) => {
+      const state = (e.state as AppView | null) ?? { view: 'home' }
+      setCurrent(state)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  /** Push a new history entry and update React state together. */
+  const navigate = (next: AppView) => {
+    window.history.pushState(next, '')
+    setCurrent(next)
   }
 
-  if (selectedStop) {
-    const fromTrip = selectedStop.fromTrip
+  /** Go back — popstate listener handles the state update. */
+  const goBack = () => window.history.back()
+
+  if (current.view === 'stop') {
     return (
       <StopView
-        stopId={selectedStop.stopId}
-        stopName={selectedStop.name}
-        backLabel={fromTrip ? 'Back to trip' : 'Nearby stops'}
-        onBack={() => {
-          setSelectedStop(null)
-          if (!fromTrip) setSelectedTrip(null)
-        }}
-        onSelectTrip={(trip) => {
-          setTripBackLabel(selectedStop.name ?? 'Back')
-          setSelectedStop(null)
-          setSelectedTrip(trip)
-        }}
-        onSelectStop={(stopId, name) => setSelectedStop({ stopId, name, fromTrip })}
+        stopId={current.stopId}
+        stopName={current.name}
+        backLabel={current.backLabel}
+        onBack={goBack}
+        onSelectTrip={(trip) =>
+          navigate({ view: 'trip', trip, backLabel: current.name ?? 'Back' })
+        }
+        onSelectStop={(stopId, name) =>
+          navigate({ view: 'stop', stopId, name, backLabel: current.name ?? 'Back' })
+        }
       />
     )
   }
 
-  if (selectedTrip) {
+  if (current.view === 'trip') {
     return (
       <TripView
-        trip={selectedTrip}
-        onBack={() => setSelectedTrip(null)}
-        backLabel={tripBackLabel}
-        onSelectStop={(stopId, name) => handleSelectStop(stopId, name, selectedTrip)}
+        trip={current.trip}
+        onBack={goBack}
+        backLabel={current.backLabel}
+        onSelectStop={(stopId, name) =>
+          navigate({ view: 'stop', stopId, name, backLabel: current.trip.headsign ?? 'Trip' })
+        }
       />
     )
   }
 
   return (
     <NearbyView
-      onSelectTrip={(trip) => { setTripBackLabel('Nearby stops'); setSelectedTrip(trip) }}
-      onSelectStop={(stopId, name) => handleSelectStop(stopId, name)}
+      onSelectTrip={(trip) =>
+        navigate({ view: 'trip', trip, backLabel: 'Nearby stops' })
+      }
+      onSelectStop={(stopId, name) =>
+        navigate({ view: 'stop', stopId, name, backLabel: 'Nearby stops' })
+      }
     />
   )
 }
