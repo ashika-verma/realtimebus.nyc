@@ -46,9 +46,9 @@ export default function StopView({ stopId, stopName, backLabel = 'Back', onBack,
   const displayName = stop?.name ?? stopName ?? `Stop ${stopId}`
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'lightseagreen' }}>
-      {/* Header */}
-      <header className="sticky top-0 z-20 px-4 pb-3 pt-10" style={{ backgroundColor: 'lightseagreen' }}>
+    <div className="flex flex-col h-dvh" style={{ backgroundColor: 'lightseagreen' }}>
+      {/* Header — pinned, never scrolls */}
+      <header className="shrink-0 px-4 pb-3 pt-10 z-20" style={{ backgroundColor: 'lightseagreen' }}>
         <div className="max-w-lg mx-auto">
           <button
             onClick={onBack}
@@ -64,7 +64,8 @@ export default function StopView({ stopId, stopName, backLabel = 'Back', onBack,
         </div>
       </header>
 
-      <main className="px-4 pb-8 max-w-lg mx-auto space-y-3">
+      <main className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="px-4 pb-8 max-w-lg mx-auto space-y-3">
         {isLoading || !enrichedStop ? (
           <div className="bg-white/30 rounded-2xl h-40 animate-pulse" />
         ) : error ? (
@@ -83,6 +84,7 @@ export default function StopView({ stopId, stopName, backLabel = 'Back', onBack,
             onSelectStop={onSelectStop}
           />
         )}
+        </div>
       </main>
     </div>
   )

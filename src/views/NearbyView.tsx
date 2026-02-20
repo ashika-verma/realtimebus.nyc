@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
+import { DEFAULT_SETTINGS } from '../config'
 import { useLocation } from '../hooks/useLocation'
 import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { stopsNearby, haversineMeters } from '../utils/geo'
@@ -42,7 +43,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   // Nearby stops (within 400m)
   const nearbyStops = useMemo(() => {
     if (!coords || !stops.length) return []
-    return stopsNearby(stops, coords.lat, coords.lon, 400)
+    return stopsNearby(stops, coords.lat, coords.lon, DEFAULT_SETTINGS.nearbyRadiusMeters)
   }, [coords, stops])
 
   // Build arrivals map for nearby stops
@@ -109,9 +110,9 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const isSearching = searchQuery.trim().length > 0
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'lightseagreen' }}>
-      {/* Header */}
-      <header className="sticky top-0 z-20 px-4 pb-3 pt-10" style={{ backgroundColor: 'lightseagreen' }}>
+    <div className="flex flex-col h-dvh" style={{ backgroundColor: 'lightseagreen' }}>
+      {/* Header — pinned, never scrolls */}
+      <header className="shrink-0 px-4 pb-3 pt-10 z-20" style={{ backgroundColor: 'lightseagreen' }}>
         <div className="max-w-lg mx-auto">
           <div className="flex items-end justify-between">
             <div>
@@ -163,7 +164,8 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
         </div>
       </header>
 
-      <main className="px-4 pb-8 max-w-lg mx-auto space-y-3">
+      <main className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="px-4 pb-8 max-w-lg mx-auto space-y-3">
         {/* Loading skeleton */}
         {loading && !isSearching && (
           <div className="space-y-3">
@@ -257,6 +259,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
             })}
           </>
         )}
+        </div>
       </main>
     </div>
   )

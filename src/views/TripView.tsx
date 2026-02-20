@@ -45,9 +45,9 @@ export default function TripView({ trip, onBack, backLabel = 'Nearby stops', onS
   }))
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'lightseagreen' }}>
-      {/* Header */}
-      <header className="sticky top-0 z-20 px-4 pb-3 pt-10" style={{ backgroundColor: 'lightseagreen' }}>
+    <div className="flex flex-col h-dvh" style={{ backgroundColor: 'lightseagreen' }}>
+      {/* Header — pinned, never scrolls */}
+      <header className="shrink-0 px-4 pb-3 pt-10 z-20" style={{ backgroundColor: 'lightseagreen' }}>
         <div className="max-w-lg mx-auto">
           <button
             onClick={onBack}
@@ -82,7 +82,8 @@ export default function TripView({ trip, onBack, backLabel = 'Nearby stops', onS
         </div>
       </header>
 
-      <main className="px-4 pb-8 max-w-lg mx-auto">
+      <main className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="px-4 pb-8 max-w-lg mx-auto">
         <div className="bg-white rounded-2xl shadow p-4">
           {timelineStops.length === 0 ? (
             <p className="text-gray-400 text-sm italic text-center py-6">
@@ -99,6 +100,7 @@ export default function TripView({ trip, onBack, backLabel = 'Nearby stops', onS
         </div>
 
         <p className="text-white/40 text-xs text-center mt-4">Updates every 15 seconds</p>
+        </div>
       </main>
     </div>
   )

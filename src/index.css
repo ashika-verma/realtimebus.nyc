@@ -2,8 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  overflow-y: scroll;
+/* Lock the document to the viewport — the app container handles its own scroll */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -14,12 +18,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: lightseagreen;
-  min-height: 100vh;
 }
 
-/* Prevent flash of unstyled content on load */
 #root {
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Safe area insets for notched phones */
