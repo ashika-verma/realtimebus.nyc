@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: realtimebus-nyc
+    runtime: node
+    region: ohio
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: MTA_GTFS_RT_BASE_URL
+        value: https://gtfsrt.prod.obanyc.com
+      - key: MTA_API_KEY
+        sync: false   # you'll set this manually in the Render dashboard
+      - key: NODE_ENV
+        value: production
