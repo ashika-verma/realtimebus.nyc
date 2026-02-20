@@ -95,6 +95,16 @@ app.get('/api/gtfs/trips', async (req, res) => {
   }
 })
 
+app.get('/api/gtfs/alerts', async (req, res) => {
+  try {
+    const data = await fetchGtfsRt('/alerts')
+    res.json(data)
+  } catch (err) {
+    console.error('[alerts]', err.message)
+    res.status(502).json({ error: err.message })
+  }
+})
+
 // ────────────────────────────────────────────────────────────────
 // Static GTFS data
 // ────────────────────────────────────────────────────────────────

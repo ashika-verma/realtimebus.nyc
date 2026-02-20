@@ -73,10 +73,24 @@ export interface VehiclePosition {
   currentStatus?: string
 }
 
+export interface AlertTranslation { text?: string; language?: string }
+export interface AlertText { translation?: AlertTranslation[] }
+export interface AlertPeriod { start?: number; end?: number }
+export interface AlertInformedEntity { agencyId?: string; routeId?: string; stopId?: string }
+export interface GtfsAlert {
+  activePeriod?: AlertPeriod[]
+  informedEntity?: AlertInformedEntity[]
+  cause?: string
+  effect?: string
+  headerText?: AlertText
+  descriptionText?: AlertText
+}
+
 export interface FeedEntity {
   id: string
   tripUpdate?: TripUpdate
   vehicle?: VehiclePosition
+  alert?: GtfsAlert
 }
 
 export interface FeedMessage {

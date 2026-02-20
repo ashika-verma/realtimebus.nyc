@@ -34,7 +34,8 @@ export default function StopCard({
   allStops,
   onSelectTrip,
 }: StopCardProps) {
-  const [expanded, setExpanded] = useState(true)
+  const [open, setOpen] = useState(true)
+  const [expandedDirections, setExpandedDirections] = useState<Set<string>>(new Set())
   const wt = calcWalkTime(stop.distanceMeters)
 
   // Enrich arrivals with resolved headsigns before grouping
@@ -59,7 +60,7 @@ export default function StopCard({
       {/* Header */}
       <button
         className="w-full flex items-center justify-between px-4 py-3 text-left"
-        onClick={() => setExpanded((e) => !e)}
+        onClick={() => setOpen((o) => !o)}
       >
         <div>
           <h2 className="font-semibold text-gray-900 text-base leading-tight">
@@ -71,7 +72,7 @@ export default function StopCard({
           </p>
         </div>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -80,37 +81,57 @@ export default function StopCard({
         </svg>
       </button>
 
-      {expanded && (
+      {open && (
         <>
           {directions.length === 0 ? (
             <p className="px-4 pb-4 text-sm text-gray-400 italic">No upcoming arrivals</p>
           ) : (
-            directions.map(([headsign, rows]) => (
-              <div key={headsign ?? '_unknown'} className="border-t border-gray-100">
-                {headsign && (
-                  <p className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    To {headsign}
-                  </p>
-                )}
-                {rows.slice(0, 4).map((arrival, i) => (
-                  <ArrivalRow
-                    key={`${arrival.tripId ?? ''}-${i}`}
-                    arrival={arrival}
-                    walkTimeSec={wt}
-                    routeMap={routeMap}
-                    onClick={() =>
-                      onSelectTrip?.({
-                        tripId: arrival.tripId ?? '',
-                        vehicleId: arrival.vehicleId,
-                        routeId: arrival.routeId ?? '',
-                        headsign,
-                        stopId: stop.stopId,
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            ))
+            directions.map(([headsign, rows]) => {
+              const key = headsign ?? '_unknown'
+              const isExpanded = expandedDirections.has(key)
+              const shown = rows.slice(0, isExpanded ? rows.length : 3)
+              const hidden = rows.length - 3
+              return (
+                <div key={key} className="border-t border-gray-100">
+                  {headsign && (
+                    <p className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      To {headsign}
+                    </p>
+                  )}
+                  {shown.map((arrival, i) => (
+                    <ArrivalRow
+                      key={`${arrival.tripId ?? ''}-${i}`}
+                      arrival={arrival}
+                      walkTimeSec={wt}
+                      routeMap={routeMap}
+                      onClick={() =>
+                        onSelectTrip?.({
+                          tripId: arrival.tripId ?? '',
+                          vehicleId: arrival.vehicleId,
+                          routeId: arrival.routeId ?? '',
+                          headsign,
+                          stopId: stop.stopId,
+                        })
+                      }
+                    />
+                  ))}
+                  {!isExpanded && hidden > 0 && (
+                    <button
+                      className="px-4 pb-2 text-xs text-gray-400 hover:text-gray-600"
+                      onClick={() =>
+                        setExpandedDirections((prev) => {
+                          const next = new Set(prev)
+                          next.add(key)
+                          return next
+                        })
+                      }
+                    >
+                      Show {hidden} more
+                    </button>
+                  )}
+                </div>
+              )
+            })
           )}
 
           <TransfersList stop={stop} allStops={allStops} routeMap={routeMap} />
