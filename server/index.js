@@ -1,4 +1,5 @@
 import express from 'express'
+import compression from 'compression'
 import fetch from 'node-fetch'
 import { createRequire } from 'module'
 import { readFileSync, existsSync } from 'fs'
@@ -36,6 +37,7 @@ const BUSTIME_KEY = process.env.BUSTIME_API_KEY ?? process.env.MTA_API_KEY ?? ''
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 
 const app = express()
+app.use(compression())
 app.use(express.json())
 
 // CORS for dev
@@ -243,6 +245,7 @@ app.get('/api/stops', async (req, res) => {
   try {
     if (!stopsCache) stopsCache = await loadJson('stops.json')
     if (!stopsCache) return res.status(503).json({ error: 'stops.json not found — run: npm run process-gtfs' })
+    res.setHeader('Cache-Control', 'public, max-age=86400')
     res.json(stopsCache)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -253,6 +256,7 @@ app.get('/api/routes', async (req, res) => {
   try {
     if (!routesCache) routesCache = await loadJson('routes.json')
     if (!routesCache) return res.status(503).json({ error: 'routes.json not found — run: npm run process-gtfs' })
+    res.setHeader('Cache-Control', 'public, max-age=86400')
     res.json(routesCache)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -263,6 +267,7 @@ app.get('/api/route-headsigns', async (req, res) => {
   try {
     if (!routeHeadsignsCache) routeHeadsignsCache = await loadJson('route-headsigns.json')
     if (!routeHeadsignsCache) return res.status(503).json({ error: 'route-headsigns.json not found — run: npm run process-gtfs' })
+    res.setHeader('Cache-Control', 'public, max-age=86400')
     res.json(routeHeadsignsCache)
   } catch (err) {
     res.status(500).json({ error: err.message })

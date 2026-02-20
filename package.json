@@ -14,6 +14,7 @@
     "process-gtfs": "node scripts/process-gtfs.js"
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "csv-parse": "^6.1.0",
     "express": "^5.2.1",
     "gtfs-realtime-bindings": "^1.1.1",
@@ -23,6 +24,7 @@
     "swr": "^2.3.3"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/node": "^25.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { useDebounce } from '../hooks/useDebounce'
 import { DEFAULT_SETTINGS } from '../config'
 import { BusPullIndicator, usePullToRefresh } from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
@@ -31,6 +32,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const { alerts, mutate: mutateAlerts } = useAlerts()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedQuery = useDebounce(searchQuery, 300)
   const [slowLoad, setSlowLoad] = useState(false)
 
   // ── Nearby stops (within radius) ──────────────────────────────
@@ -55,14 +57,14 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   useEffect(() => {
     if (!sirisLoading) { setSlowLoad(false); return }
     const id = setTimeout(() => setSlowLoad(true), 8000)
-    return () => clearInterval(id)
+    return () => clearTimeout(id)
   }, [sirisLoading])
 
-  // Search results
+  // Search results — driven by debounced query so SIRI isn't hit per keystroke
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return []
+    if (!debouncedQuery.trim()) return []
     return stops
-      .filter((s) => matchesSearch(s, searchQuery))
+      .filter((s) => matchesSearch(s, debouncedQuery))
       .slice(0, 15)
       .map((s) => ({
         ...s,
@@ -70,7 +72,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
           ? haversineMeters(coords.lat, coords.lon, s.lat, s.lon)
           : 0,
       }))
-  }, [stops, searchQuery, coords])
+  }, [stops, debouncedQuery, coords])
 
   // SIRI arrivals for search results (separate hook — null key when not searching)
   const searchStopIds = useMemo(
@@ -112,7 +114,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const secsSince = lastUpdated ? Math.round((now - lastUpdated) / 1000) : null
 
   const loading = geoLoading || stopsLoading || sirisLoading
-  const isSearching = searchQuery.trim().length > 0
+  const isSearching = debouncedQuery.trim().length > 0
 
   return (
     <div className="flex flex-col h-dvh" style={{ backgroundColor: 'lightseagreen' }}>
