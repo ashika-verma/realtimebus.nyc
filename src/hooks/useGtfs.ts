@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+import { useState } from 'react'
 import type { FeedMessage, Stop, Route, RouteMap, RouteHeadsigns, GtfsAlert } from '../types'
 import { usePageVisible } from './usePageVisible'
 
@@ -21,17 +22,24 @@ interface TripUpdatesResult {
 
 export function useTripUpdates(): TripUpdatesResult {
   const visible = usePageVisible()
+  // Track client-side fetch time, not the server cache timestamp (_fetchedAt).
+  // This way the "Xs ago" counter resets on every successful fetch, including
+  // pull-to-refresh, even when the server returns the same cached payload.
+  const [lastFetched, setLastFetched] = useState<number | null>(null)
   const { data, error, isLoading, isValidating, mutate } = useSWR<FeedMessage>(
     '/api/gtfs/trips',
     fetcher as (url: string) => Promise<FeedMessage>,
-    { refreshInterval: visible ? REFRESH_INTERVAL : 0 }
+    {
+      refreshInterval: visible ? REFRESH_INTERVAL : 0,
+      onSuccess: () => setLastFetched(Date.now()),
+    }
   )
   return {
     tripUpdates: data?.entity ?? [],
     error,
     isLoading,
     isValidating,
-    lastUpdated: data?._fetchedAt ?? null,
+    lastUpdated: lastFetched,
     mutate,
   }
 }
@@ -40,11 +48,12 @@ interface VehiclePositionsResult {
   vehicles: FeedMessage['entity']
   error: Error | undefined
   isLoading: boolean
+  mutate: () => void
 }
 
 export function useVehiclePositions(): VehiclePositionsResult {
   const visible = usePageVisible()
-  const { data, error, isLoading } = useSWR<FeedMessage>(
+  const { data, error, isLoading, mutate } = useSWR<FeedMessage>(
     '/api/gtfs/vehicles',
     fetcher as (url: string) => Promise<FeedMessage>,
     { refreshInterval: visible ? REFRESH_INTERVAL : 0 }
@@ -53,6 +62,7 @@ export function useVehiclePositions(): VehiclePositionsResult {
     vehicles: data?.entity ?? [],
     error,
     isLoading,
+    mutate,
   }
 }
 
@@ -101,14 +111,14 @@ export function useRouteHeadsigns(): { routeHeadsigns: RouteHeadsigns; isLoading
   return { routeHeadsigns: data ?? {}, isLoading }
 }
 
-export function useAlerts(): { alerts: GtfsAlert[]; isLoading: boolean } {
-  const { data, isLoading } = useSWR<FeedMessage>(
+export function useAlerts(): { alerts: GtfsAlert[]; isLoading: boolean; mutate: () => void } {
+  const { data, isLoading, mutate } = useSWR<FeedMessage>(
     '/api/gtfs/alerts',
     fetcher as (url: string) => Promise<FeedMessage>,
     { refreshInterval: 60_000, revalidateOnFocus: false }
   )
   const alerts = (data?.entity ?? []).map((e) => e.alert).filter(Boolean) as GtfsAlert[]
-  return { alerts, isLoading }
+  return { alerts, isLoading, mutate }
 }
 
 function buildRouteMap(routes: Route[] | undefined): RouteMap {

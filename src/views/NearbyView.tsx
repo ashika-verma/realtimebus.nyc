@@ -1,9 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
-import { mutate as swrMutate } from 'swr'
 import { DEFAULT_SETTINGS } from '../config'
 import { BusPullIndicator, usePullToRefresh } from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
-import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
+import { useTripUpdates, useVehiclePositions, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { stopsNearby, haversineMeters } from '../utils/geo'
 import { buildArrivalsByStop } from '../utils/gtfs'
 import StopCard from '../components/StopCard'
@@ -29,20 +28,17 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const { stops, isLoading: stopsLoading } = useStops()
   const { routeMap } = useRoutes()
   const { routeHeadsigns } = useRouteHeadsigns()
-  const { tripUpdates, isLoading: tripsLoading, isValidating, lastUpdated, error: tripsError, mutate } = useTripUpdates()
-  const { alerts } = useAlerts()
+  const { tripUpdates, isLoading: tripsLoading, isValidating, lastUpdated, error: tripsError, mutate: mutateTrips } = useTripUpdates()
+  const { mutate: mutateVehicles } = useVehiclePositions()
+  const { alerts, mutate: mutateAlerts } = useAlerts()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [slowLoad, setSlowLoad] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const handleRefresh = useCallback(async () => {
-    await Promise.all([
-      swrMutate('/api/gtfs/trips'),
-      swrMutate('/api/gtfs/vehicles'),
-      swrMutate('/api/gtfs/alerts'),
-    ])
-  }, [])
+    await Promise.all([mutateTrips(), mutateVehicles(), mutateAlerts()])
+  }, [mutateTrips, mutateVehicles, mutateAlerts])
   const { pullDist, refreshing, dragging } = usePullToRefresh(scrollRef, handleRefresh)
 
   // After 8s of initial loading show a "server waking up" hint
@@ -200,7 +196,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
           <div className="bg-white rounded-2xl shadow p-5 text-center">
             <p className="text-gray-500 text-sm">Couldn't load arrival times.</p>
             <button
-              onClick={() => mutate()}
+              onClick={() => mutateTrips()}
               className="mt-2 text-xs text-teal-600 font-semibold hover:underline"
             >
               Retry
