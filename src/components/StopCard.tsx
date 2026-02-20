@@ -38,7 +38,7 @@ export default function StopCard({
   onSelectStop,
   showTransfers = true,
 }: StopCardProps) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(arrivals.length > 0)
   const [expandedDirections, setExpandedDirections] = useState<Set<string>>(new Set())
   const wt = calcWalkTime(stop.distanceMeters)
 
@@ -56,8 +56,6 @@ export default function StopCard({
       return t > 0 && t - Date.now() / 1000 > -120
     })
   ) as [string | null, ArrivalInfo[]][]
-
-  if (directions.length === 0) return null
 
   return (
     <div className="bg-white rounded-2xl shadow overflow-hidden card-enter">
@@ -87,7 +85,9 @@ export default function StopCard({
 
       {open && (
         <>
-          {directions.map(([headsign, rows]) => {
+          {directions.length === 0 ? (
+            <p className="px-4 pb-4 text-sm text-gray-400 italic">No upcoming arrivals</p>
+          ) : directions.map(([headsign, rows]) => {
               const key = headsign ?? '_unknown'
               const isExpanded = expandedDirections.has(key)
               const shown = rows.slice(0, isExpanded ? rows.length : 3)
