@@ -151,15 +151,20 @@ function parseSiriStop(raw) {
     const vehicleRef = mvj.VehicleRef ?? ''
     const vehicleId = vehicleRef.includes('_') ? vehicleRef.split('_').pop() : vehicleRef || null
 
+    // DestinationName can be a string or a single-element array
+    const rawDest = mvj.DestinationName
+    const headsign = Array.isArray(rawDest) ? (rawDest[0] ?? null) : (rawDest ?? null)
+
     arrivals.push({
       tripId: mvj.FramedVehicleJourneyRef?.DatedVehicleJourneyRef ?? null,
       routeId,
-      headsign: mvj.DestinationName ?? null,
+      headsign,
       directionId: mvj.DirectionRef != null ? parseInt(String(mvj.DirectionRef), 10) : null,
       vehicleId,
       arrival: { time: timeSec },
       scheduleRelationship: expectedTime ? 'REALTIME' : 'SCHEDULED',
-      stopsAway: mc.Extensions?.Distances?.StopsFromCall ?? null,
+      // NumberOfStopsAway is directly on MonitoredCall; fall back to Extensions path just in case
+      stopsAway: mc.NumberOfStopsAway ?? mc.Extensions?.Distances?.StopsFromCall ?? null,
       isScheduled: !expectedTime,
     })
   }
