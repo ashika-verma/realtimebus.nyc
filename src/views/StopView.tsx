@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react'
-import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
+import { useSiriArrivals, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { useLocation } from '../hooks/useLocation'
-import { buildArrivalsByStop } from '../utils/gtfs'
 import { haversineMeters } from '../utils/geo'
 import StopCard from '../components/StopCard'
 import type { SelectedTrip } from '../types'
@@ -16,7 +15,7 @@ interface StopViewProps {
 }
 
 export default function StopView({ stopId, stopName, backLabel = 'Back', onBack, onSelectTrip, onSelectStop }: StopViewProps) {
-  const { tripUpdates, isLoading, error } = useTripUpdates()
+  const { arrivalsByStop, isLoading, error } = useSiriArrivals([stopId])
   const { stops } = useStops()
   const { routeMap } = useRoutes()
   const { routeHeadsigns } = useRouteHeadsigns()
@@ -28,10 +27,7 @@ export default function StopView({ stopId, stopName, backLabel = 'Back', onBack,
     [stops, stopId],
   )
 
-  const arrivals = useMemo(() => {
-    if (!tripUpdates.length) return []
-    return buildArrivalsByStop(tripUpdates, new Set([stopId])).get(stopId) ?? []
-  }, [tripUpdates, stopId])
+  const arrivals = arrivalsByStop.get(stopId) ?? []
 
   const enrichedStop = useMemo(() => {
     if (!stop) return null

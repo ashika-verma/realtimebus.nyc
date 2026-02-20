@@ -2,9 +2,8 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { DEFAULT_SETTINGS } from '../config'
 import { BusPullIndicator, usePullToRefresh } from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
-import { useTripUpdates, useVehiclePositions, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
+import { useSiriArrivals, useVehiclePositions, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { stopsNearby, haversineMeters } from '../utils/geo'
-import { buildArrivalsByStop } from '../utils/gtfs'
 import StopCard from '../components/StopCard'
 import AlertBanner from '../components/AlertBanner'
 import type { Stop, SelectedTrip } from '../types'
@@ -28,40 +27,59 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const { stops, isLoading: stopsLoading } = useStops()
   const { routeMap } = useRoutes()
   const { routeHeadsigns } = useRouteHeadsigns()
-  const { tripUpdates, isLoading: tripsLoading, isValidating, lastUpdated, error: tripsError, mutate: mutateTrips } = useTripUpdates()
   const { mutate: mutateVehicles } = useVehiclePositions()
   const { alerts, mutate: mutateAlerts } = useAlerts()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [slowLoad, setSlowLoad] = useState(false)
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const handleRefresh = useCallback(async () => {
-    await Promise.all([mutateTrips(), mutateVehicles(), mutateAlerts()])
-  }, [mutateTrips, mutateVehicles, mutateAlerts])
-  const { pullDist, refreshing, dragging } = usePullToRefresh(scrollRef, handleRefresh)
-
-  // After 8s of initial loading show a "server waking up" hint
-  useEffect(() => {
-    if (!tripsLoading) { setSlowLoad(false); return }
-    const id = setTimeout(() => setSlowLoad(true), 8000)
-    return () => clearInterval(id)
-  }, [tripsLoading])
-
-  // Nearby stops (within 400m)
+  // ── Nearby stops (within radius) ──────────────────────────────
   const nearbyStops = useMemo(() => {
     if (!coords || !stops.length) return []
     return stopsNearby(stops, coords.lat, coords.lon, DEFAULT_SETTINGS.nearbyRadiusMeters)
   }, [coords, stops])
 
-  // Build arrivals map for nearby stops
-  const arrivalsByStop = useMemo(() => {
-    if (!nearbyStops.length || !tripUpdates.length) return new Map<string, never[]>()
-    const ids = new Set(nearbyStops.map((s) => s.stopId))
-    return buildArrivalsByStop(tripUpdates, ids)
-  }, [nearbyStops, tripUpdates])
+  const nearbyStopIds = useMemo(() => nearbyStops.map((s) => s.stopId), [nearbyStops])
 
-  // Sort: stops with upcoming arrivals first, empty stops at the bottom
+  // ── SIRI arrivals for all nearby stops (real-time + scheduled) ─
+  const { arrivalsByStop, isLoading: sirisLoading, isValidating, lastUpdated, error: sirisError, mutate: mutateSiri } =
+    useSiriArrivals(nearbyStopIds)
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([mutateSiri(), mutateVehicles(), mutateAlerts()])
+  }, [mutateSiri, mutateVehicles, mutateAlerts])
+  const { pullDist, refreshing, dragging } = usePullToRefresh(scrollRef, handleRefresh)
+
+  // After 8s of initial loading show a "server waking up" hint
+  useEffect(() => {
+    if (!sirisLoading) { setSlowLoad(false); return }
+    const id = setTimeout(() => setSlowLoad(true), 8000)
+    return () => clearInterval(id)
+  }, [sirisLoading])
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return []
+    return stops
+      .filter((s) => matchesSearch(s, searchQuery))
+      .slice(0, 15)
+      .map((s) => ({
+        ...s,
+        distanceMeters: coords
+          ? haversineMeters(coords.lat, coords.lon, s.lat, s.lon)
+          : 0,
+      }))
+  }, [stops, searchQuery, coords])
+
+  // SIRI arrivals for search results (separate hook — null key when not searching)
+  const searchStopIds = useMemo(
+    () => searchResults.map((s) => s.stopId),
+    [searchResults]
+  )
+  const { arrivalsByStop: searchArrivalsByStop } = useSiriArrivals(searchStopIds)
+
+  // Sort nearby stops: arrivals first, then by distance
   const sortedNearbyStops = useMemo(() => {
     const hasArrivals = (stopId: string) => {
       const rows = arrivalsByStop.get(stopId) ?? []
@@ -79,27 +97,6 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
     })
   }, [nearbyStops, arrivalsByStop])
 
-  // Search results
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return []
-    return stops
-      .filter((s) => matchesSearch(s, searchQuery))
-      .slice(0, 15)
-      .map((s) => ({
-        ...s,
-        distanceMeters: coords
-          ? haversineMeters(coords.lat, coords.lon, s.lat, s.lon)
-          : 0,
-      }))
-  }, [stops, searchQuery, coords])
-
-  // Build arrivals map for search results
-  const searchArrivalsByStop = useMemo(() => {
-    if (!searchResults.length || !tripUpdates.length) return new Map<string, never[]>()
-    const ids = new Set(searchResults.map((s) => s.stopId))
-    return buildArrivalsByStop(tripUpdates, ids)
-  }, [searchResults, tripUpdates])
-
   // Route IDs for nearby stops (for alert filtering)
   const nearbyRouteIds = useMemo(
     () => new Set(nearbyStops.flatMap((s) => s.routes)),
@@ -114,7 +111,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   }, [])
   const secsSince = lastUpdated ? Math.round((now - lastUpdated) / 1000) : null
 
-  const loading = geoLoading || stopsLoading || tripsLoading
+  const loading = geoLoading || stopsLoading || sirisLoading
   const isSearching = searchQuery.trim().length > 0
 
   return (
@@ -191,12 +188,12 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
           </div>
         )}
 
-        {/* Trip data error */}
-        {!isSearching && tripsError && !tripsLoading && (
+        {/* Arrivals error */}
+        {!isSearching && sirisError && !sirisLoading && (
           <div className="bg-white rounded-2xl shadow p-5 text-center">
             <p className="text-gray-500 text-sm">Couldn't load arrival times.</p>
             <button
-              onClick={() => mutateTrips()}
+              onClick={() => mutateSiri()}
               className="mt-2 text-xs text-teal-600 font-semibold hover:underline"
             >
               Retry

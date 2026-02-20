@@ -100,7 +100,7 @@ export interface FeedMessage {
 
 // ─── App-level ────────────────────────────────────────────────────────────────
 
-/** Enriched arrival row built from TripUpdate */
+/** Enriched arrival row built from TripUpdate or SIRI stop-monitoring */
 export interface ArrivalInfo {
   tripId?: string
   routeId?: string
@@ -111,6 +111,10 @@ export interface ArrivalInfo {
   arrival?: StopTimeEvent | null
   departure?: StopTimeEvent | null
   scheduleRelationship?: string
+  /** Stops between the bus and this stop (from SIRI Distances) */
+  stopsAway?: number | null
+  /** True when only a scheduled time is available (no real-time GPS prediction) */
+  isScheduled?: boolean
 }
 
 /** What gets passed when navigating to TripView */

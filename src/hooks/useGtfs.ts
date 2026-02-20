@@ -1,6 +1,6 @@
 import useSWR from 'swr'
-import { useState } from 'react'
-import type { FeedMessage, Stop, Route, RouteMap, RouteHeadsigns, GtfsAlert } from '../types'
+import { useState, useMemo } from 'react'
+import type { FeedMessage, Stop, Route, RouteMap, RouteHeadsigns, GtfsAlert, ArrivalInfo } from '../types'
 import { usePageVisible } from './usePageVisible'
 
 const fetcher = (url: string): Promise<FeedMessage | Stop[] | Route[]> =>
@@ -119,6 +119,43 @@ export function useAlerts(): { alerts: GtfsAlert[]; isLoading: boolean; mutate: 
   )
   const alerts = (data?.entity ?? []).map((e) => e.alert).filter(Boolean) as GtfsAlert[]
   return { alerts, isLoading, mutate }
+}
+
+interface SiriArrivalsResult {
+  arrivalsByStop: Map<string, ArrivalInfo[]>
+  isLoading: boolean
+  isValidating: boolean
+  error: Error | undefined
+  lastUpdated: number | null
+  mutate: () => void
+}
+
+/**
+ * Fetches MTA Bus Time SIRI stop-monitoring for the given stop IDs.
+ * Returns both real-time predictions AND scheduled (not-yet-started) trips.
+ */
+export function useSiriArrivals(stopIds: string[]): SiriArrivalsResult {
+  const visible = usePageVisible()
+  const [lastFetched, setLastFetched] = useState<number | null>(null)
+
+  // Stable key: null when no stops so SWR doesn't fetch
+  const key = stopIds.length ? `/api/siri/stops?stops=${stopIds.join(',')}` : null
+
+  const { data, error, isLoading, isValidating, mutate } = useSWR<Record<string, ArrivalInfo[]>>(
+    key,
+    fetcher as unknown as (url: string) => Promise<Record<string, ArrivalInfo[]>>,
+    {
+      refreshInterval: visible ? 30_000 : 0,
+      onSuccess: () => setLastFetched(Date.now()),
+    }
+  )
+
+  const arrivalsByStop = useMemo(() => {
+    if (!data) return new Map<string, ArrivalInfo[]>()
+    return new Map(Object.entries(data))
+  }, [data])
+
+  return { arrivalsByStop, isLoading, isValidating, error, lastUpdated: lastFetched, mutate }
 }
 
 function buildRouteMap(routes: Route[] | undefined): RouteMap {

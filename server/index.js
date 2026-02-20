@@ -30,6 +30,9 @@ loadEnv()
 
 const API_KEY = process.env.MTA_API_KEY ?? ''
 const BASE_URL = process.env.MTA_GTFS_RT_BASE_URL ?? 'https://gtfsrt.prod.obanyc.com'
+// Bus Time SIRI key — same registration as GTFS-RT (register.developer.obanyc.com)
+// Falls back to MTA_API_KEY; override with BUSTIME_API_KEY in .env if needed
+const BUSTIME_KEY = process.env.BUSTIME_API_KEY ?? process.env.MTA_API_KEY ?? ''
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 
 const app = express()
@@ -103,6 +106,80 @@ app.get('/api/gtfs/alerts', async (req, res) => {
     console.error('[alerts]', err.message)
     res.status(502).json({ error: err.message })
   }
+})
+
+// ────────────────────────────────────────────────────────────────
+// MTA Bus Time SIRI API — per-stop arrivals (real-time + scheduled)
+// ────────────────────────────────────────────────────────────────
+const SIRI_BASE = 'https://bustime.mta.info/api/siri'
+const SIRI_CACHE_TTL = 30_000 // 30s
+
+async function fetchSiriStop(stopId) {
+  const cacheKey = `siri_${stopId}`
+  const now = Date.now()
+  if (cache[cacheKey] && now - cache[cacheKey].fetchedAt < SIRI_CACHE_TTL) {
+    return cache[cacheKey].data
+  }
+  const url = `${SIRI_BASE}/stop-monitoring.json?key=${BUSTIME_KEY}&version=2&OperatorRef=MTA&MonitoringRef=${stopId}&MinimumStopVisitsPerLine=2`
+  const resp = await fetch(url)
+  if (!resp.ok) throw new Error(`SIRI ${resp.status} for stop ${stopId}`)
+  const data = await resp.json()
+  cache[cacheKey] = { data, fetchedAt: now }
+  return data
+}
+
+function parseSiriStop(raw) {
+  const deliveries = raw?.Siri?.ServiceDelivery?.StopMonitoringDelivery ?? []
+  const visits = deliveries.flatMap((d) => d.MonitoredStopVisit ?? [])
+  const arrivals = []
+
+  for (const visit of visits) {
+    const mvj = visit.MonitoredVehicleJourney
+    const mc = mvj?.MonitoredCall
+    if (!mvj || !mc) continue
+
+    // Strip agency prefix: "MTA NYCT_Q17" → "Q17"
+    const lineRef = mvj.LineRef ?? ''
+    const routeId = lineRef.includes('_') ? lineRef.split('_').slice(1).join('_') : lineRef
+
+    const expectedTime = mc.ExpectedArrivalTime ?? mc.ExpectedDepartureTime
+    const aimedTime = mc.AimedArrivalTime ?? mc.AimedDepartureTime
+    const timeStr = expectedTime ?? aimedTime
+    if (!timeStr) continue
+
+    const timeSec = Math.floor(new Date(timeStr).getTime() / 1000)
+    const vehicleRef = mvj.VehicleRef ?? ''
+    const vehicleId = vehicleRef.includes('_') ? vehicleRef.split('_').pop() : vehicleRef || null
+
+    arrivals.push({
+      tripId: mvj.FramedVehicleJourneyRef?.DatedVehicleJourneyRef ?? null,
+      routeId,
+      headsign: mvj.DestinationName ?? null,
+      directionId: mvj.DirectionRef != null ? parseInt(String(mvj.DirectionRef), 10) : null,
+      vehicleId,
+      arrival: { time: timeSec },
+      scheduleRelationship: expectedTime ? 'REALTIME' : 'SCHEDULED',
+      stopsAway: mc.Extensions?.Distances?.StopsFromCall ?? null,
+      isScheduled: !expectedTime,
+    })
+  }
+
+  arrivals.sort((a, b) => a.arrival.time - b.arrival.time)
+  return arrivals
+}
+
+// Batch endpoint: fetches SIRI for multiple stops in parallel
+app.get('/api/siri/stops', async (req, res) => {
+  const stopIds = String(req.query.stops ?? '').split(',').filter(Boolean).slice(0, 20)
+  if (!stopIds.length) return res.json({})
+
+  const results = await Promise.allSettled(stopIds.map((id) => fetchSiriStop(id)))
+  const out = {}
+  for (let i = 0; i < stopIds.length; i++) {
+    const r = results[i]
+    out[stopIds[i]] = r.status === 'fulfilled' ? parseSiriStop(r.value) : []
+  }
+  res.json(out)
 })
 
 // ────────────────────────────────────────────────────────────────
