@@ -16,11 +16,12 @@ interface TripUpdatesResult {
   isLoading: boolean
   isValidating: boolean
   lastUpdated: number | null
+  mutate: () => void
 }
 
 export function useTripUpdates(): TripUpdatesResult {
   const visible = usePageVisible()
-  const { data, error, isLoading, isValidating } = useSWR<FeedMessage>(
+  const { data, error, isLoading, isValidating, mutate } = useSWR<FeedMessage>(
     '/api/gtfs/trips',
     fetcher as (url: string) => Promise<FeedMessage>,
     { refreshInterval: visible ? REFRESH_INTERVAL : 0 }
@@ -31,6 +32,7 @@ export function useTripUpdates(): TripUpdatesResult {
     isLoading,
     isValidating,
     lastUpdated: data?._fetchedAt ?? null,
+    mutate,
   }
 }
 

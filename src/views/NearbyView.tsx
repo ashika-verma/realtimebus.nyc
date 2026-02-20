@@ -26,10 +26,18 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const { stops, isLoading: stopsLoading } = useStops()
   const { routeMap } = useRoutes()
   const { routeHeadsigns } = useRouteHeadsigns()
-  const { tripUpdates, isLoading: tripsLoading, isValidating, lastUpdated } = useTripUpdates()
+  const { tripUpdates, isLoading: tripsLoading, isValidating, lastUpdated, error: tripsError, mutate } = useTripUpdates()
   const { alerts } = useAlerts()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [slowLoad, setSlowLoad] = useState(false)
+
+  // After 8s of initial loading show a "server waking up" hint
+  useEffect(() => {
+    if (!tripsLoading) { setSlowLoad(false); return }
+    const id = setTimeout(() => setSlowLoad(true), 8000)
+    return () => clearInterval(id)
+  }, [tripsLoading])
 
   // Nearby stops (within 320m)
   const nearbyStops = useMemo(() => {
@@ -144,6 +152,24 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white/30 rounded-2xl h-32 animate-pulse" />
             ))}
+            {slowLoad && (
+              <p className="text-center text-white/60 text-sm pt-1">
+                Server is waking up, hang tight…
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Trip data error */}
+        {!isSearching && tripsError && !tripsLoading && (
+          <div className="bg-white rounded-2xl shadow p-5 text-center">
+            <p className="text-gray-500 text-sm">Couldn't load arrival times.</p>
+            <button
+              onClick={() => mutate()}
+              className="mt-2 text-xs text-teal-600 font-semibold hover:underline"
+            >
+              Retry
+            </button>
           </div>
         )}
 
@@ -174,6 +200,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                     routeMap={routeMap}
                     routeHeadsigns={routeHeadsigns}
                     allStops={stops}
+                    alerts={alerts}
                     onSelectTrip={onSelectTrip}
                     onSelectStop={onSelectStop}
                     showTransfers={false}
@@ -203,6 +230,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                   routeMap={routeMap}
                   routeHeadsigns={routeHeadsigns}
                   allStops={stops}
+                  alerts={alerts}
                   onSelectTrip={onSelectTrip}
                   onSelectStop={onSelectStop}
                   showTransfers={false}

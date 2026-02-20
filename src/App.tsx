@@ -13,6 +13,7 @@ interface SelectedStop {
 export default function App() {
   const [selectedTrip, setSelectedTrip] = useState<SelectedTrip | null>(null)
   const [selectedStop, setSelectedStop] = useState<SelectedStop | null>(null)
+  const [tripBackLabel, setTripBackLabel] = useState('Nearby stops')
 
   const handleSelectStop = (stopId: string, name: string | undefined, fromTrip?: SelectedTrip) => {
     setSelectedStop({ stopId, name, fromTrip })
@@ -30,6 +31,7 @@ export default function App() {
           if (!fromTrip) setSelectedTrip(null)
         }}
         onSelectTrip={(trip) => {
+          setTripBackLabel(selectedStop.name ?? 'Back')
           setSelectedStop(null)
           setSelectedTrip(trip)
         }}
@@ -43,6 +45,7 @@ export default function App() {
       <TripView
         trip={selectedTrip}
         onBack={() => setSelectedTrip(null)}
+        backLabel={tripBackLabel}
         onSelectStop={(stopId, name) => handleSelectStop(stopId, name, selectedTrip)}
       />
     )
@@ -50,7 +53,7 @@ export default function App() {
 
   return (
     <NearbyView
-      onSelectTrip={setSelectedTrip}
+      onSelectTrip={(trip) => { setTripBackLabel('Nearby stops'); setSelectedTrip(trip) }}
       onSelectStop={(stopId, name) => handleSelectStop(stopId, name)}
     />
   )

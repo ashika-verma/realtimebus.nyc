@@ -44,6 +44,21 @@ export function formatArrival(arrivalUnixSec: number | string): string {
 }
 
 /**
+ * "Leave in X min" / "leave now" / "arriving" / "departed" — answers the
+ * question "when do I need to leave?" instead of "when does the bus arrive?"
+ */
+export function formatLeaveIn(arrivalUnixSec: number | string, walkTimeSec: number): string {
+  const nowSec = Date.now() / 1000
+  const diff = Number(arrivalUnixSec) - nowSec
+  if (diff < -60) return 'departed'
+  if (diff < 30) return 'arriving'
+  const leaveInSecs = diff - walkTimeSec
+  if (leaveInSecs < 60) return 'leave now'
+  const mins = Math.floor(leaveInSecs / 60)
+  return `leave in ${mins} min`
+}
+
+/**
  * Find stops within radiusMeters of (lat, lon) from a stops array.
  * Returns stops sorted by distance, each annotated with .distanceMeters.
  */

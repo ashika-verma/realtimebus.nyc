@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns } from '../hooks/useGtfs'
+import { useTripUpdates, useStops, useRoutes, useRouteHeadsigns, useAlerts } from '../hooks/useGtfs'
 import { useLocation } from '../hooks/useLocation'
 import { buildArrivalsByStop } from '../utils/gtfs'
 import { haversineMeters } from '../utils/geo'
@@ -16,10 +16,11 @@ interface StopViewProps {
 }
 
 export default function StopView({ stopId, stopName, backLabel = 'Back', onBack, onSelectTrip, onSelectStop }: StopViewProps) {
-  const { tripUpdates, isLoading } = useTripUpdates()
+  const { tripUpdates, isLoading, error } = useTripUpdates()
   const { stops } = useStops()
   const { routeMap } = useRoutes()
   const { routeHeadsigns } = useRouteHeadsigns()
+  const { alerts } = useAlerts()
   const { coords } = useLocation()
 
   const stop = useMemo(
@@ -66,6 +67,10 @@ export default function StopView({ stopId, stopName, backLabel = 'Back', onBack,
       <main className="px-4 pb-8 max-w-lg mx-auto space-y-3">
         {isLoading || !enrichedStop ? (
           <div className="bg-white/30 rounded-2xl h-40 animate-pulse" />
+        ) : error ? (
+          <div className="bg-white rounded-2xl shadow p-5 text-center">
+            <p className="text-gray-500 text-sm">Couldn't load arrival times.</p>
+          </div>
         ) : (
           <StopCard
             stop={enrichedStop}
@@ -73,6 +78,7 @@ export default function StopView({ stopId, stopName, backLabel = 'Back', onBack,
             routeMap={routeMap}
             routeHeadsigns={routeHeadsigns}
             allStops={stops}
+            alerts={alerts}
             onSelectTrip={onSelectTrip}
             onSelectStop={onSelectStop}
           />

@@ -8,10 +8,11 @@ import type { SelectedTrip, Stop, TimelineStop } from '../types'
 interface TripViewProps {
   trip: SelectedTrip
   onBack: () => void
+  backLabel?: string
   onSelectStop?: (stopId: string, name?: string) => void
 }
 
-export default function TripView({ trip, onBack, onSelectStop }: TripViewProps) {
+export default function TripView({ trip, onBack, backLabel = 'Nearby stops', onSelectStop }: TripViewProps) {
   const { tripId, vehicleId, routeId, headsign } = trip
   const { tripUpdates } = useTripUpdates()
   const { vehicles } = useVehiclePositions()
@@ -55,7 +56,7 @@ export default function TripView({ trip, onBack, onSelectStop }: TripViewProps) 
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Nearby stops
+            {backLabel}
           </button>
           <div className="flex items-center gap-3">
             <RouteBadge routeId={routeId} route={route} />
