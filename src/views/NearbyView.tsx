@@ -8,6 +8,7 @@ import { useSiriArrivals, useVehiclePositions, useStops, useRoutes, useRouteHead
 import { stopsNearby, haversineMeters } from '../utils/geo'
 import StopCard from '../components/StopCard'
 import AlertBanner from '../components/AlertBanner'
+import NearbyMapView from '../components/NearbyMapView'
 import type { Stop, SelectedTrip } from '../types'
 
 interface NearbyViewProps {
@@ -35,6 +36,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 300)
   const [slowLoad, setSlowLoad] = useState(false)
+  const [showMap, setShowMap] = useState(false)
 
   // ── Nearby stops (within radius) ──────────────────────────────
   const nearbyStops = useMemo(() => {
@@ -143,7 +145,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                       : 'No location'}
               </p>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {isValidating && (
                 <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
               )}
@@ -151,6 +153,26 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                 <span className="text-white/60 text-xs">{secsSince}s ago</span>
               )}
               <AlertBanner alerts={alerts} nearbyRouteIds={nearbyRouteIds} />
+              {/* List / Map toggle — only show when we have stops */}
+              {coords && !geoLoading && nearbyStops.length > 0 && (
+                <button
+                  onClick={() => setShowMap((v) => !v)}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                  title={showMap ? 'Show list' : 'Show map'}
+                >
+                  {showMap ? (
+                    /* List icon */
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  ) : (
+                    /* Map icon */
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
@@ -187,6 +209,25 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
         </div>
       </header>
 
+      {/* Map view */}
+      {showMap && coords && !isSearching && (
+        <div className="flex-1 relative overflow-hidden">
+          <NearbyMapView
+            stops={sortedNearbyStops}
+            arrivalsByStop={arrivalsByStop}
+            userLat={coords.lat}
+            userLon={coords.lon}
+            routeMap={routeMap}
+            onSelectStop={(stopId, name) => {
+              setShowMap(false)
+              onSelectStop(stopId, name)
+            }}
+          />
+        </div>
+      )}
+
+      {/* List view */}
+      {(!showMap || isSearching) && (
       <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
         <div className="px-4 pb-8 max-w-lg mx-auto space-y-3">
         {/* Loading skeleton */}
@@ -284,6 +325,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
         )}
         </div>
       </div>
+      )}
     </div>
   )
 }
