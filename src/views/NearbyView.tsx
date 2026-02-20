@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useDebounce } from '../hooks/useDebounce'
+import { useOnline } from '../hooks/useOnline'
 import { DEFAULT_SETTINGS } from '../config'
 import { BusPullIndicator, usePullToRefresh } from '../components/PullToRefresh'
 import { useLocation } from '../hooks/useLocation'
@@ -113,6 +114,9 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
   }, [])
   const secsSince = lastUpdated ? Math.round((now - lastUpdated) / 1000) : null
 
+  const online = useOnline()
+  const isStale = !online || (secsSince !== null && secsSince > 60)
+
   const loading = geoLoading || stopsLoading || sirisLoading
   const isSearching = debouncedQuery.trim().length > 0
 
@@ -149,6 +153,15 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
               <AlertBanner alerts={alerts} nearbyRouteIds={nearbyRouteIds} />
             </div>
           </div>
+
+          {/* Offline / stale data warning */}
+          {isStale && (
+            <div className="mt-2 flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5">
+              <span className="text-white text-xs">
+                {online ? '⚠ Arrival times may be outdated' : '⚠ No connection — showing last known data'}
+              </span>
+            </div>
+          )}
 
           {/* Search input */}
           <div className="mt-3 relative">

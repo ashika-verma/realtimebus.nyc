@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { formatArrival } from '../utils/geo'
 import type { TimelineStop } from '../types'
 
@@ -15,7 +15,11 @@ export default function TripTimeline({
   routeColor = '#20B2AA',
   onSelectStop,
 }: TripTimelineProps) {
-  const now = Date.now() / 1000
+  const [now, setNow] = useState(() => Date.now() / 1000)
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now() / 1000), 10_000)
+    return () => clearInterval(id)
+  }, [])
 
   const nextStopIdx = stops.findIndex((s) => {
     const t = Number(s.arrival?.time ?? s.departure?.time ?? 0)
