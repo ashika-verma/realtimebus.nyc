@@ -39,10 +39,10 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
     return () => clearInterval(id)
   }, [tripsLoading])
 
-  // Nearby stops (within 320m)
+  // Nearby stops (within 400m)
   const nearbyStops = useMemo(() => {
     if (!coords || !stops.length) return []
-    return stopsNearby(stops, coords.lat, coords.lon, 320)
+    return stopsNearby(stops, coords.lat, coords.lon, 400)
   }, [coords, stops])
 
   // Build arrivals map for nearby stops
@@ -51,6 +51,24 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
     const ids = new Set(nearbyStops.map((s) => s.stopId))
     return buildArrivalsByStop(tripUpdates, ids)
   }, [nearbyStops, tripUpdates])
+
+  // Sort: stops with upcoming arrivals first, empty stops at the bottom
+  const sortedNearbyStops = useMemo(() => {
+    const hasArrivals = (stopId: string) => {
+      const rows = arrivalsByStop.get(stopId) ?? []
+      const now = Date.now() / 1000
+      return rows.some((r) => {
+        const t = Number(r.arrival?.time ?? r.departure?.time ?? 0)
+        return t > 0 && t - now > -120
+      })
+    }
+    return [...nearbyStops].sort((a, b) => {
+      const aHas = hasArrivals(a.stopId) ? 0 : 1
+      const bHas = hasArrivals(b.stopId) ? 0 : 1
+      if (aHas !== bHas) return aHas - bHas
+      return a.distanceMeters - b.distanceMeters // distance as tiebreaker
+    })
+  }, [nearbyStops, arrivalsByStop])
 
   // Search results
   const searchResults = useMemo(() => {
@@ -220,7 +238,7 @@ export default function NearbyView({ onSelectTrip, onSelectStop }: NearbyViewPro
                 <p className="text-gray-400 text-xs mt-1">Try moving closer to a bus stop.</p>
               </div>
             )}
-            {nearbyStops.map((stop) => {
+            {sortedNearbyStops.map((stop) => {
               const arrivals = arrivalsByStop.get(stop.stopId) ?? []
               return (
                 <StopCard
